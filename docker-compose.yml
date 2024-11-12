@@ -1,7 +1,7 @@
 version: '3'
 services:
   cryptroute-dns-proxy:
-    image: cryptroute/cryptroute-dns-proxy:v1
+    image: cryptroute/cryptroute-dns-proxy:latest
     container_name: cryptroute-dns-proxy
     restart: always
     ports:
