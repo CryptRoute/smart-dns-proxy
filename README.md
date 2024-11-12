@@ -28,6 +28,8 @@ The following VOD providers are known to be compatible with this Smart DNS Proxy
 - **FuboTV**
 - **DAZN**
 - **Roku Channel**
+- **Plex**
+- **Samsung TV Plus**
 
 Please note that this solution may not work on all VOD providers or might require specific regional configurations for certain platforms.
 
