@@ -117,7 +117,7 @@ fi
 # Restart Docker to ensure it's running and updated
 echo "Restarting Docker..."
 sudo systemctl restart docker
-
+clear
 # Edit docker-compose.yml with provided IP address and network interface
 echo "Configuring docker-compose.yml with the provided IP and network interface..."
 sed -i "s/<DNS_SERVER_IP>/$DNS_SERVER_IP/g" docker-compose.yml
@@ -131,6 +131,7 @@ docker-compose up -d
 container_status=$(docker ps --filter "name=cryptroute-dns-proxy" --format "{{.Status}}")
 if [[ "$container_status" == *"Up"* ]]; then
   echo "Smart DNS Proxy is up and running successfully!"
+  echo "You should now point your DNS to $DNS_SERVER_IP to unblock services."
 else
   echo "There was an error starting Smart DNS Proxy. Here are the last logs:"
   docker logs cryptroute-dns-proxy
