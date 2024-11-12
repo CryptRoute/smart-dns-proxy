@@ -12,7 +12,7 @@ services:
     environment:
       - DNS_SERVER_IP=<DNS_SERVER_IP>      # Replace with your desired IP
       - NETWORK_INTERFACE=<NETWORK_INTERFACE>         # Replace with the appropriate network interface eg. eth0 . Please check with ifconfig to know your internet interface
-    entrypoint: ["/start.sh"]          # Ensure the container runs start.sh on startup
+    entrypoint: ["/start.sh"]
     networks:
       - proxy-net
 
