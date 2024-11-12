@@ -9,6 +9,10 @@ echo ""
 # Set DEBIAN_FRONTEND to noninteractive to suppress prompts
 export DEBIAN_FRONTEND=noninteractive
 
+# Configure needrestart to automatically handle restarts
+echo "Configuring needrestart to automatically restart services..."
+sudo bash -c 'echo "\$nrconf{restart} = '\''a'\'';" > /etc/needrestart/needrestart.conf'
+
 # Check if the OS is Ubuntu or Debian
 if [[ -f /etc/os-release ]]; then
   . /etc/os-release
@@ -60,8 +64,10 @@ fi
 # Check and install Docker Compose if not present
 if ! command -v docker-compose &> /dev/null; then
   echo "Docker Compose is not installed. Installing Docker Compose..."
-  sudo curl -L "https://github.com/docker/compose/releases/download/$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep tag_name | cut -d '\"' -f 4)/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+  COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep tag_name | cut -d '"' -f 4)
+  sudo curl -L "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
   sudo chmod +x /usr/local/bin/docker-compose
+  sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose  # Create a symlink for easier access
   echo "Docker Compose installed successfully."
 else
   echo "Docker Compose is already installed."
