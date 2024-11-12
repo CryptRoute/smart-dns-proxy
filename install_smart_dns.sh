@@ -1,10 +1,13 @@
 #!/bin/bash
-
+clear
 # Display information about the script
 echo "Smart DNS Proxy Installer"
 echo "This script installs Smart DNS Proxy with Docker and Docker Compose."
 echo "Supported OS: Ubuntu, Debian"
 echo ""
+
+# Set DEBIAN_FRONTEND to noninteractive to suppress prompts
+export DEBIAN_FRONTEND=noninteractive
 
 # Check if the OS is Ubuntu or Debian
 if [[ -f /etc/os-release ]]; then
