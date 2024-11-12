@@ -64,7 +64,16 @@ fi
 # Check and install Docker Compose if not present
 if ! command -v docker-compose &> /dev/null; then
   echo "Docker Compose is not installed. Installing Docker Compose..."
-  apt install docker-compose -y
+  # Download the latest stable version of docker-compose
+COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep tag_name | cut -d '"' -f 4)
+sudo curl -L "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+
+# Make it executable
+sudo chmod +x /usr/local/bin/docker-compose
+
+# Create a symlink to ensure it’s accessible globally
+sudo ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
+
   echo "Docker Compose installed successfully."
 else
   echo "Docker Compose is already installed."
