@@ -1,0 +1,21 @@
+version: '3'
+services:
+  cryptroute-dns-proxy:
+    image: cryptroute/cryptroute-dns-proxy:v1
+    container_name: cryptroute-dns-proxy
+    restart: always
+    ports:
+      - "80:80"       # HTTP
+      - "443:443"     # HTTPS
+      - "53:53/udp"   # DNS over UDP
+      - "53:53/tcp"   # DNS over TCP
+    environment:
+      - DNS_SERVER_IP=<DNS_SERVER_IP>      # Replace with your desired IP
+      - NETWORK_INTERFACE=<NETWORK_INTERFACE>         # Replace with the appropriate network interface eg. eth0 . Please check with ifconfig to know your internet interface
+    entrypoint: ["/start.sh"]          # Ensure the container runs start.sh on startup
+    networks:
+      - proxy-net
+
+networks:
+  proxy-net:
+    driver: bridge
