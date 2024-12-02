@@ -1,5 +1,5 @@
 #!/bin/bash
-clear
+
 # Display information about the script
 echo "Smart DNS Proxy Installer"
 echo "This script installs Smart DNS Proxy with Docker and Docker Compose."
@@ -26,6 +26,10 @@ else
   exit 1
 fi
 
+# Detect public and private network interfaces
+default_public_interface=$(ip route | grep default | awk '{print $5}' | head -n 1)
+ipv6_interface=$(ip -6 route | grep default | awk '{print $5}' | head -n 1)
+
 # Prompt the user to proceed
 read -p "Do you want to proceed with the installation? (Y/N): " choice
 if [[ "$choice" != "Y" && "$choice" != "y" ]]; then
@@ -33,9 +37,19 @@ if [[ "$choice" != "Y" && "$choice" != "y" ]]; then
   exit 1
 fi
 
-# Prompt for IP Address and Network Interface
+# Prompt for IP Address, Network Interface, and Additional Variables
 read -p "Enter the IP address to use for DNS Proxy: " DNS_SERVER_IP
-read -p "Enter the network interface (e.g., eth0): " NETWORK_INTERFACE
+read -p "Enter the network interface (default: $default_public_interface): " NETWORK_INTERFACE
+NETWORK_INTERFACE=${NETWORK_INTERFACE:-$default_public_interface}
+
+read -p "Enter the IPv6 interface (default: $ipv6_interface): " NETWORK_INTERFACE_IPV6
+NETWORK_INTERFACE_IPV6=${NETWORK_INTERFACE_IPV6:-$ipv6_interface}
+
+read -p "Enter the WAN hostname (default: localhost): " WAN_HOSTNAME
+WAN_HOSTNAME=${WAN_HOSTNAME:-localhost}
+
+read -p "Enter the IPv6 DNS server (default: ::1): " DNS_SERVER_IPV6
+DNS_SERVER_IPV6=${DNS_SERVER_IPV6:-::1}
 
 # Function to check if a package is installed and install if missing
 function install_if_missing() {
@@ -47,34 +61,15 @@ function install_if_missing() {
   fi
 }
 
-# Check if Docker is installed, with separate handling for Debian
+# Check and install Docker if not present
 if ! command -v docker &> /dev/null; then
   echo "Docker is not installed. Installing Docker..."
-
-  # Update package list
   sudo apt-get update
-
-  # Set up Docker repository for Debian if needed
-  if [[ "$ID" == "debian" ]]; then
-    sudo apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release
-    curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-  else
-    # For Ubuntu
-    sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+  sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
   curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
   echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-  fi
-
-  # Update package list after adding Docker repository
   sudo apt-get update
-
-  # Install Docker CE
-  sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-
-  # Enable and start Docker service
-  sudo systemctl enable docker
-  sudo systemctl start docker
+  sudo apt-get install -y docker-ce
   echo "Docker installed successfully."
 else
   echo "Docker is already installed."
@@ -83,16 +78,10 @@ fi
 # Check and install Docker Compose if not present
 if ! command -v docker-compose &> /dev/null; then
   echo "Docker Compose is not installed. Installing Docker Compose..."
-  # Download the latest stable version of docker-compose
-COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep tag_name | cut -d '"' -f 4)
-sudo curl -L "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-
-# Make it executable
-sudo chmod +x /usr/local/bin/docker-compose
-
-# Create a symlink to ensure it’s accessible globally
-sudo ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
-
+  COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep tag_name | cut -d '"' -f 4)
+  sudo curl -L "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+  sudo chmod +x /usr/local/bin/docker-compose
+  sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose  # Create a symlink for easier access
   echo "Docker Compose installed successfully."
 else
   echo "Docker Compose is already installed."
@@ -117,11 +106,14 @@ fi
 # Restart Docker to ensure it's running and updated
 echo "Restarting Docker..."
 sudo systemctl restart docker
-clear
-# Edit docker-compose.yml with provided IP address and network interface
-echo "Configuring docker-compose.yml with the provided IP and network interface..."
+
+# Edit docker-compose.yml with provided variables
+echo "Configuring docker-compose.yml with the provided values..."
 sed -i "s/<DNS_SERVER_IP>/$DNS_SERVER_IP/g" docker-compose.yml
 sed -i "s/<NETWORK_INTERFACE>/$NETWORK_INTERFACE/g" docker-compose.yml
+sed -i "s/<NETWORK_INTERFACE_IPV6>/$NETWORK_INTERFACE_IPV6/g" docker-compose.yml
+sed -i "s/<WAN_HOSTNAME>/$WAN_HOSTNAME/g" docker-compose.yml
+sed -i "s/<DNS_SERVER_IPV6>/$DNS_SERVER_IPV6/g" docker-compose.yml
 
 # Start the service with Docker Compose
 echo "Starting Smart DNS Proxy with Docker Compose..."
@@ -131,7 +123,6 @@ docker-compose up -d
 container_status=$(docker ps --filter "name=cryptroute-dns-proxy" --format "{{.Status}}")
 if [[ "$container_status" == *"Up"* ]]; then
   echo "Smart DNS Proxy is up and running successfully!"
-  echo "You should now point your DNS to $DNS_SERVER_IP to unblock services."
 else
   echo "There was an error starting Smart DNS Proxy. Here are the last logs:"
   docker logs cryptroute-dns-proxy
