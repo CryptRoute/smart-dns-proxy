@@ -4,6 +4,9 @@ services:
     container_name: cryptroute-dns-proxy
     restart: always
     network_mode: "host"   # Use host network mode to avoid binding issues
+    privileged: true
+    cap_add:
+      - NET_ADMIN
     environment:
       - DNS_SERVER_IP=<DNS_SERVER_IP>
       - DNS_SERVER_IPV6=<DNS_SERVER_IPV6>
